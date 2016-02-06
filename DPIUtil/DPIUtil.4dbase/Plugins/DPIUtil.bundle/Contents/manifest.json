@@ -1,0 +1,1 @@
+﻿{"name":"DPIUtil","id":20000,"commands":[{"theme":"DPIUtil","syntax":"DPI GET INFORMATION(&Y;&Y;&L)"},{"theme":"DPIUtil","syntax":"DPI Get option(&L):L"},{"theme":"DPIUtil","syntax":"DPI SET OPTION(&L;&L)"}]}
