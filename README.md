@@ -11,15 +11,36 @@ Get information about the DPI on Windows
 
 <img src="https://cloud.githubusercontent.com/assets/1725068/18940649/21945000-8645-11e6-86ed-4a0f800e5a73.png" width="32" height="32" /> <img src="https://cloud.githubusercontent.com/assets/1725068/18940648/2192ddba-8645-11e6-864d-6d5692d55717.png" width="32" height="32" />
 
+## Syntax
 
-Commands
----
+```
+DPI GET INFORMATION (keyNames;keyValues;arg3)
+```
 
-```c
-// --- DPIUtil
-DPI_GET_INFORMATION
-DPI_Get_option
-DPI_SET_OPTION
+Parameter|Type|Description
+------------|------------|----
+keyNames|ARRAY TEXT|``horzsize``, ``vertsize``, ``horzres``, ``vertres``, ``logpixelsx``, ``logpixelsy``
+keyValues|ARRAY LONGINT|
+image|LONGINT|monitor number
+
+See [EnumDisplayMonitors](https://msdn.microsoft.com/en-us/library/windows/desktop/dd162610(v=vs.85).aspx).
+
+```
+value:=DPI Get option (option)
+DPI SET OPTION (option;value)
+```
+
+Parameter|Type|Description
+------------|------------|----
+option|LONGINT|``DPI_WIN8DPISCALING_KEY``, ``DPI_LOGPIXELS_KEY``, ``DPI_DESKTOPDPIOVERRIDE_KEY``
+value|LONGINT|
+
+Read or write the corresponding registry value for ``HKEY_CURRENT_USER``.
+
+```
+Control Panel\Desktop\Win8DpiScaling
+Control Panel\Desktop\LogPixels
+Control Panel\Desktop\DesktopDPIOverride
 ```
 
 Examples
