@@ -50,9 +50,9 @@ namespace dpi
 	{
 		HKEY hk = NULL;
 
-		if (ERROR_SUCCESS == RegCreateKeyEx(hkey, (LPCWSTR)path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hk, NULL))
+		if (ERROR_SUCCESS == RegCreateKeyEx(hkey, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hk, NULL))
 		{
-			RegSetValueEx(hk, (LPCWSTR)key, 0, REG_DWORD, (const BYTE *)&value, sizeof(DWORD));
+			RegSetValueEx(hk, key, 0, REG_DWORD, (const BYTE *)&value, sizeof(DWORD));
 			RegCloseKey(hk);
 		}
 	}
@@ -64,9 +64,12 @@ namespace dpi
 		DWORD type = REG_DWORD;
 		DWORD size = sizeof(DWORD);
 		
-		if (ERROR_SUCCESS == RegOpenKeyEx(hkey, (LPCWSTR)path, 0, KEY_READ, &hk))
+		if (ERROR_SUCCESS == RegOpenKeyEx(hkey, path, 0, KEY_READ, &hk))
 		{
-			RegQueryValueEx(hk, (LPCWSTR)key, 0, &type, (LPBYTE)&value, &size);
+			if (ERROR_SUCCESS != RegQueryValueEx(hk, key, 0, &type, (LPBYTE)&value, &size))
+			{
+				value = 0;
+			}
 			RegCloseKey(hk);
 		}
 		return value;
@@ -120,8 +123,8 @@ void DPI_GET_INFORMATION(sLONG_PTR *pResult, PackagePtr pParams)
 	C_LONGINT Param3;
 
 	Param3.fromParamAtIndex(pParams, 3);
-	unsigned short index = Param3.getIntValue();
-	index = index ? index : 1;
+	PA_long32 requestedScreen = Param3.getIntValue();
+	unsigned short index = (requestedScreen >= 1 && requestedScreen <= 65535) ? (unsigned short)requestedScreen : 1;
 
 	Param1.setSize(1);
 	Param2.setSize(1);
@@ -170,26 +173,37 @@ void DPI_Get_option(sLONG_PTR *pResult, PackagePtr pParams)
 {
 	C_LONGINT Param1;
 	C_LONGINT returnValue;
+	returnValue.setIntValue(0);
 
-	Param1.fromParamAtIndex(pParams, 1);
+	try
+	{
+		Param1.fromParamAtIndex(pParams, 1);
 
 #if VERSIONWIN
 
-	HKEY hkey = HKEY_CURRENT_USER;
+		HKEY hkey = HKEY_CURRENT_USER;
 
-	switch(Param1.getIntValue())
-	{
-		case DPI_WIN8DPISCALING_KEY:
-			returnValue.setIntValue(dpi::getValue(hkey, L"Control Panel\\Desktop", L"Win8DpiScaling"));
-			break;
-		case DPI_LOGPIXELS_KEY:
-			returnValue.setIntValue(dpi::getValue(hkey, L"Control Panel\\Desktop", L"LogPixels"));
-			break;
-		case DPI_DESKTOPDPIOVERRIDE_KEY:
-			returnValue.setIntValue(dpi::getValue(hkey, L"Control Panel\\Desktop", L"DesktopDPIOverride"));
-			break;
-	}
+		switch(Param1.getIntValue())
+		{
+			case DPI_WIN8DPISCALING_KEY:
+				returnValue.setIntValue(dpi::getValue(hkey, L"Control Panel\\Desktop", L"Win8DpiScaling"));
+				break;
+			case DPI_LOGPIXELS_KEY:
+				returnValue.setIntValue(dpi::getValue(hkey, L"Control Panel\\Desktop", L"LogPixels"));
+				break;
+			case DPI_DESKTOPDPIOVERRIDE_KEY:
+				returnValue.setIntValue(dpi::getValue(hkey, L"Control Panel\\Desktop", L"DesktopDPIOverride"));
+				break;
+		}
 #endif
+	}
+	catch(...)
+	{
+		// Ensure the host always gets a return value, even if something above threw -
+		// PluginMain's own catch(...) would otherwise swallow the exception *after*
+		// 4D has already committed to waiting for this command's declared return.
+		returnValue.setIntValue(0);
+	}
 
 	returnValue.setReturn(pResult);
 }
