@@ -1,0 +1,28 @@
+// Stable synthetic fixture; intentionally independent of the live release.
+{
+	objectVersion = 46;
+	DevelopmentTarget = {
+		MARKETING_VERSION = 7.8.9;
+		CURRENT_PROJECT_VERSION = 7.8.9;
+	};
+	DeploymentTarget = {
+		MARKETING_VERSION = 7.8.9;
+		CURRENT_PROJECT_VERSION = 7.8.9;
+	};
+	DefaultTarget = {
+		MARKETING_VERSION = 7.8.9;
+		CURRENT_PROJECT_VERSION = 7.8.9;
+	};
+	DevelopmentProject = {
+		MARKETING_VERSION = 7.8.9;
+		CURRENT_PROJECT_VERSION = 7.8.9;
+	};
+	DeploymentProject = {
+		MARKETING_VERSION = 7.8.9;
+		CURRENT_PROJECT_VERSION = 7.8.9;
+	};
+	DefaultProject = {
+		MARKETING_VERSION = 7.8.9;
+		CURRENT_PROJECT_VERSION = 7.8.9;
+	};
+}
