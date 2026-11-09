@@ -1,0 +1,4 @@
+/* Stable synthetic release metadata. */
+CFBundleName = "DPIUtil";
+CFBundleShortVersionString = "7.8.9";
+CFBundleGetInfoString = "DPIUtil version 7.8.9, Copyright 2016 miyako.";

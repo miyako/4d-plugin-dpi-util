@@ -8,17 +8,69 @@ DPIUtil reads per-monitor display metrics on Windows (via `EnumDisplayMonitors`/
 | [`DPI Get option`](#dpi-get-option) | Longint | Read a per-user Windows DPI registry value |
 | [`DPI SET OPTION`](#dpi-set-option) | *(none)* | Write a per-user Windows DPI registry value |
 
-**Platforms:** Windows only (win32/win64). All three commands are compiled solely under `VERSIONWIN`; there is no macOS build of this plugin.
+**Command support:** Windows only (win32/win64). All three commands are compiled solely under `VERSIONWIN`; the release pipeline also builds a macOS bundle, but these commands have no macOS implementation.
 
 ---
 
 ## Requirements & platform notes
 
-- **Windows only.** Nothing in this plugin has a macOS code path — don't expect it to build or run there.
+- **Windows command support only.** The release pipeline builds a macOS bundle, but none of these commands has a macOS code path.
 - **`screen` defaults to monitor 1.** For `DPI GET INFORMATION`, omitting `screen` (or passing `0`, a negative number, or anything above `65535`) falls back to monitor `1` rather than raising an error.
 - **Monitor numbering.** `screen` is a 1-based index into the order Windows' own `EnumDisplayMonitors` enumerates displays in — this is whatever order Windows itself assigns, not necessarily left-to-right or primary-first.
 - **Failures are silent, not 4D errors.** Both an out-of-range `screen` and an unrecognized `option` code return zeroed/default results rather than raising an error — see [Error handling](#error-handling--troubleshooting) below before you assume a `0` means "the display doesn't have that dimension."
 - **Registry changes may need a logon/restart to take effect.** `DPI SET OPTION` only writes the registry value; Windows itself decides when it re-reads that value (typically at logon), so writing a new value won't retroactively rescale an already-running session.
+
+## Release maintenance
+
+The commands above are Windows-only. The existing release pipeline nevertheless
+builds Windows x64 and a universal arm64/x86_64 macOS bundle, merges them, signs
+and notarizes the macOS package, and attaches ZIP and DMG assets. This lifecycle
+does not add command support on macOS or change platform builds/dependencies.
+
+1. Run **Bump version** on the desired branch, choosing patch, minor, or major.
+   It validates and commits source metadata only, then non-force pushes only
+   that branch with follow-tags disabled. It creates no tag and starts no Build.
+   A concurrent branch update rejects the push; inspect it and rerun deliberately.
+2. Run **Build** manually, using its branch selector (no workflow inputs).
+   All checkouts use the immutable selected `github.sha`, not a moving branch/tag.
+   Builds are not triggered by pushes, tags, or the bump workflow and are not
+   restricted to `master`.
+3. Build derives strict `X.Y.Z` from all six Xcode `MARKETING_VERSION` settings,
+   checking every `CURRENT_PROJECT_VERSION` against that same version,
+   coordinated with source `Info.plist` and `English.lproj/InfoPlist.strings`.
+   Supported plist `$(MARKETING_VERSION)` / `${MARKETING_VERSION}` references
+   remain intact, as do corresponding `CURRENT_PROJECT_VERSION` references.
+   `CFBundleVersion` is absent from the source plist; if present it must also
+   coordinate (literal or supported build variable). Neither dependency
+   versions, 4D format versions, nor checked-in prebuilt bundles are bumped.
+
+The old bump workflow explicitly promised to coordinate both Xcode settings,
+but its implementation selected only `MARKETING_VERSION`, leaving all six
+`CURRENT_PROJECT_VERSION` fields at `1.0.0` across successive bump commits.
+They are not documented independent counters. The migration restores that
+contract by aligning them and the stale localized `1.0` source strings to the
+existing authoritative `1.0.3`, without incrementing the release version.
+Invalid or drifted metadata now fails before building or bumping.
+
+Publication is serialized repository-wide across branches. Authenticated,
+validated, paginated release listing includes drafts; any existing same-tag
+release or remote tag blocks publication. API, authentication, network, malformed
+response, and later-page failures are errors, never evidence of absence.
+Availability is rechecked after Windows/macOS builds, universal verification,
+codesign verification, both accepted notarizations, and DMG stapling/validation.
+Only then does a non-force push create `vX.Y.Z` at the exact selected SHA, verify
+its remote target, POST a **new published non-prerelease** release with explicit
+tag/SHA/name, and upload assets without clobber. No generated release notes are
+requested (the prior release-note policy is unchanged).
+
+There is no delete, update-existing, rollback, or automatic retry. A race, failed
+POST, or upload can leave a tag, release, or some assets behind. Inspect remote
+state manually and decide how to recover; rerunning the same version intentionally
+fails closed rather than replacing/deleting partial state. Do not retry publication
+blindly. Signing and notarization continue to use the existing secret names.
+
+Local lifecycle regressions: `python3 -m unittest discover -s .github/tests -v`.
+Workflow lint: `actionlint`.
 
 ---
 
@@ -169,7 +221,7 @@ ALERT("LogPixels is now: "+String(DPI Get option (DPI_LOGPIXELS_KEY)))
 - **Unrecognized `option` code is silently ignored.** `DPI Get option` returns `0`; `DPI SET OPTION` does nothing. Neither raises an error, so a typo in the constant won't surface as a bug until the values look wrong.
 - **A `0` from `DPI Get option` is ambiguous.** It can mean "the setting is `0`," "the setting doesn't exist yet in the registry," or "`option` wasn't recognized" — the command doesn't distinguish these.
 - **`DPI SET OPTION` writes may not take effect immediately.** These are read by Windows at logon; a running session generally won't rescale until the user logs off/on (or, for some of these keys, restarts Explorer).
-- **Windows only.** Don't expect these commands to do anything on macOS — there is no macOS build.
+- **Windows command support only.** Don't expect these commands to do anything on macOS, even though release packages include a macOS bundle.
 
 ---
 

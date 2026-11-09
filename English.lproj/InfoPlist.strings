@@ -1,1 +1,5 @@
-﻿/* Localized versions of Info.plist keys */CFBundleName = "DPIUtil";CFBundleShortVersionString = "1.0";CFBundleGetInfoString = "DPIUtil version 1.0, Copyright 2016 miyako.";
+/* Localized versions of Info.plist keys */
+
+CFBundleName = "DPIUtil";
+CFBundleShortVersionString = "1.0.3";
+CFBundleGetInfoString = "DPIUtil version 1.0.3, Copyright 2016 miyako.";
