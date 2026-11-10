@@ -1,0 +1,17 @@
+name: Native ownership tests
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  ownership:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run non-release regressions
+        run: python3 -m unittest discover -s .github/tests -v

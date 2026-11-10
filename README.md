@@ -1,6 +1,6 @@
 # 4d-plugin-dpi-util
 
-DPIUtil reads per-monitor display metrics on Windows (via `EnumDisplayMonitors`/`GetDeviceCaps`) and reads/writes the three per-user Windows DPI-scaling registry values under `HKEY_CURRENT_USER\Control Panel\Desktop`. It returns plain `Longint` values and text/longint arrays — there's no `Picture`/`Object` marshalling involved anywhere in this plugin.
+DPIUtil reads per-monitor display metrics on Windows (via `EnumDisplayMonitors`/`GetDeviceCaps`) and reads/writes the three per-user Windows DPI-scaling registry values under `HKEY_CURRENT_USER\Control Panel\Desktop`. Its exported commands return plain `Longint` values and text/longint arrays. Both native projects also compile shared picture and other wrappers that these commands do not call.
 
 | Command | Returns | Purpose |
 |---|---|---|
@@ -71,6 +71,56 @@ blindly. Signing and notarization continue to use the existing secret names.
 
 Local lifecycle regressions: `python3 -m unittest discover -s .github/tests -v`.
 Workflow lint: `actionlint`.
+
+## Native ownership maintenance
+
+`python3 .github/tests/test_native_ownership.py` runs a non-release macOS
+ASan/UBSan regression. It compiles the full unchanged bundled `4DPluginAPI.c`,
+all actual wrapper implementations and the dispatcher, with a synthetic
+engine-boundary callback. Build products live only in a temporary directory;
+no Xcode build phases, signing, packaging or release workflow is invoked.
+The read-only **Native ownership tests** CI runs these and the lifecycle tests
+on pull requests and pushes to `master`; both release workflows remain manual.
+String allocations, SDK handles and picture reference counts are explicitly
+balanced because macOS LeakSanitizer is unavailable. ASCII, BMP, surrogate-pair
+and empty text run with both allocated and null empty-string representations.
+Set `DPIUTIL_NATIVE_SOURCE_ROOT` to an extracted source revision to run the same
+harness against that revision without changing the test.
+
+The bundled SDK at baseline `5b869b5ebb647769077fe058bff9d48184f3dd6f`
+has C-file SHA-256
+`355ee208ad6c61dcc68e8432546fc42484888211dd07ed8fa3fdb4440f3edbd8`.
+Its `v14` implementation / `v13` header comments are not an independently
+verified upstream release identity. `PA_SetStringInArray` disposes the old
+element and shallow-transfers the input only for a Unicode array with data,
+an index in `0..fNbElements`, and a non-null descriptor pointer. Rejection
+retains caller ownership. `ARRAY_TEXT` makes independent native copies on
+input and transfers independently allocated strings on normal output;
+it must not dispose accepted output aliases. `&Y` in both manifests means
+array capability, not string ownership.
+
+`PA_SetStringVariable` and `PA_SetPictureVariable` also shallow-assign.
+`CPicture` command arguments that are immediately assigned start Undefined
+to avoid leaking allocated empty values. File-path strings are cleared once
+through their argument owner; file picture outputs are cleared after
+`setPicture` retains them. `setBytes` releases its temporary picture after that
+retain. Copied picture returns remain owning handoffs to their caller.
+`PA_ConvertCharsetToCharset` returns bytes excluding the terminator, so
+`createCopy` divides by `sizeof(PA_Unichar)` for the UTF-16 string constructor.
+`PA_ReturnString` instead calls the content setter, not the array transfer
+operation.
+
+Coverage includes replacement, shrink/clear, borrowed-input copy survival,
+independent transfers, SDK setter rejections, scalar content setters and picture
+handoffs. It does not certify real 4D or Windows execution, allocation-failure
+resize safety (the SDK updates its count even after a failed resize), or
+malformed host parameters. `C_POINTER::getVariable` metadata semantics and
+SDK-only application-path / picture-data string ownership remain deferred;
+no speculative cleanup is added. This SDK has no object/collection getter
+surface. The picture helpers call synchronous procedure commands, not JSON
+Parse, user methods or asynchronous callbacks; no owning command return is
+established here. The SDK's raw-kind-0 command-handle-failure sentinel is not
+passed to `PA_ClearVariable`.
 
 ---
 
